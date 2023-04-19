@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
-#include "image.h"
+#include "pthreadimage.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -26,12 +26,7 @@ Matrix algorithms[]={
 };
 
 //Convolute's arguments, pthread-friendly form
-struct arguments{
-    long rank;
-    int numThreads;
-    Image* srcImg;
-    Image* destImg;
-}
+Arguments argument={0, NUM_THREADS,NULL,NULL};
 
 //getPixelValue - Computes the value of a specific pixel on a specific channel using the selected convolution kernel
 //Paramters: srcImage:  An Image struct populated with the image being convoluted
@@ -65,19 +60,18 @@ uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
 //convolute:  Applies a kernel matrix to an image
 //Parameters: argies: all former convolute arguments, passed in as one object
 //Returns: Nothing
-void *convolute(void* argies){
+void *convolute(void* rank){
     //struct arguments *localArgs = argies;
-    int row,pix,bit,span;
-    uint8 pvalue;
+    int row,end,pix,bit,span;
     //'pass in' old params using the struct
-    long my_rank = argies->rank;
-    int numThreads = argies->numThreads;
-    Image srcImage = argies->srcImg;
-    Image destImage = argies->destImage;
+    long my_rank = rank;
+    Image* srcImage = argument->srcImg;
+    Image* destImage = argument->destImg;
+    enum KernelTypes algorithm = argument->alg;
 
     //not every thread should edit the whole image
     //here is how it should be spaced out
-    int spacing = srcImage->height / numThreads;
+    int spacing = srcImage->height / NUM_THREADS;
     row = my_rank * spacing;
     end = row + spacing - 1;
 
@@ -134,17 +128,17 @@ int main(int argc,char** argv){
     destImage.height=srcImage.height;
     destImage.width=srcImage.width;
     destImage.data=malloc(sizeof(uint8_t)*destImage.width*destImage.bpp*destImage.height);
-   
+   //set global struct values
+   argument.srcImg = &srcImage;
+   argument.destImg = &destImage;
+   argument.alg = type;
+
    long i;
    long j;
     //Create threads
     pthread_t threads[NUM_THREADS];
     for(i = 0; i< NUM_THREADS; i++){
-	struct arguments *argies;
-	argies->srcImg = &srcImage;
-	argies->destImg = &destImage;
-	
-	pthread_create(&threads[i], NULL, &convolute, argies);
+	pthread_create(&threads[i], NULL, &convolute, i);
     }
     //Join threads
     for(j = 0; j < NUM_THREADS; j++){
