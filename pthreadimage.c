@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
+#include <pthread.h>
 #include "pthreadimage.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -60,14 +61,14 @@ uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
 //convolute:  Applies a kernel matrix to an image
 //Parameters: argies: all former convolute arguments, passed in as one object
 //Returns: Nothing
-void *convolute(void* rank){
+void *convolute(long* rank){
     //struct arguments *localArgs = argies;
     int row,end,pix,bit,span;
     //'pass in' old params using the struct
     long my_rank = rank;
-    Image* srcImage = argument->srcImg;
-    Image* destImage = argument->destImg;
-    enum KernelTypes algorithm = argument->alg;
+    Image* srcImage = argument.srcImg;
+    Image* destImage = argument.destImg;
+    int algorithm = argument.alg;
 
     //not every thread should edit the whole image
     //here is how it should be spaced out
@@ -79,7 +80,7 @@ void *convolute(void* rank){
     for (row=row;row<end;row++){
         for (pix=0;pix<srcImage->width;pix++){
             for (bit=0;bit<srcImage->bpp;bit++){
-                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithm);
+                destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithms[algorithm]);
             }
         }
     }
