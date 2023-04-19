@@ -61,11 +61,11 @@ uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
 //convolute:  Applies a kernel matrix to an image
 //Parameters: argies: all former convolute arguments, passed in as one object
 //Returns: Nothing
-void *convolute(long* rank){
+void *convolute(void* rank){
     //struct arguments *localArgs = argies;
     int row,end,pix,bit,span;
     //'pass in' old params using the struct
-    long my_rank = rank;
+    long my_rank = (long)rank;
     Image* srcImage = argument.srcImg;
     Image* destImage = argument.destImg;
     int algorithm = argument.alg;
@@ -139,7 +139,7 @@ int main(int argc,char** argv){
     //Create threads
     pthread_t threads[NUM_THREADS];
     for(i = 0; i< NUM_THREADS; i++){
-	pthread_create(&threads[i], NULL, &convolute, i);
+	pthread_create(&threads[i], NULL, &convolute, (void*)threads);
     }
     //Join threads
     for(j = 0; j < NUM_THREADS; j++){
