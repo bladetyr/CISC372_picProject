@@ -13,7 +13,7 @@
 
 //CHANGE THIS IF YOU WANT TO CHANGE THE NUMBER OF THREADS
 //CHANGE THE MACRO UP HERE
-#define NUM_THREADS 100
+#define NUM_THREADS 10
 
 //An array of kernel matrices to be used for image convolution.  
 //The indexes of these match the enumeration from the header file. ie. algorithms[BLUR] returns the kernel corresponding to a box blur.
@@ -73,14 +73,21 @@ void *convolute(void* rank){
     //not every thread should edit the whole image
     //here is how it should be spaced out
     int spacing = srcImage->height / NUM_THREADS;
-    row = my_rank * spacing;
-    end = row + spacing - 1;
+    row = my_rank * spacing + 1;
+    end = (my_rank+1) * spacing;
+
+    if(end > srcImage->height){
+	end = srcImage->height;
+    }
 
     span=srcImage->bpp*srcImage->bpp;
-    for (row=row;row<end;row++){
+    for (;row<end;row++){
+	printf("IN\n");
         for (pix=0;pix<srcImage->width;pix++){
+	    printf("IN2\n");
             for (bit=0;bit<srcImage->bpp;bit++){
                 destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithms[algorithm]);
+		printf("IN3\n");
             }
         }
     }
@@ -137,19 +144,22 @@ int main(int argc,char** argv){
    long i;
    long j;
     //Create threads
-    pthread_t threads[NUM_THREADS];
-    for(i = 0; i< NUM_THREADS; i++){
-	pthread_create(&threads[i], NULL, &convolute, (void*)threads);
+    pthread_t* threads;
+    threads = (pthread_t*)malloc(NUM_THREADS*sizeof(pthread_t));
+    for(i = 0; i < NUM_THREADS; i++){
+	pthread_create(&threads[i], NULL, &convolute, (void*)i);
+	printf("HERE\n");
     }
-    //Join threads
-    for(j = 0; j < NUM_THREADS; j++){
-	pthread_join(threads[i], NULL);
-    }
+
     //convolute(&srcImage,&destImage,algorithms[type]);
     stbi_write_png("output.png",destImage.width,destImage.height,destImage.bpp,destImage.data,destImage.bpp*destImage.width);
     stbi_image_free(srcImage.data);
-    
     free(destImage.data);
+    //Join threads
+    for(j = 0; j < NUM_THREADS; j++){
+        pthread_join(threads[i], NULL);
+        printf("HERE2\n");
+    }
     t2=time(NULL);
     printf("Took %ld seconds\n",t2-t1);
    return 0;
