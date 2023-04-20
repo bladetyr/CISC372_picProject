@@ -156,14 +156,10 @@ int main(int argc,char** argv){
 
     for(i = 0; i < NUM_THREADS; i++){
 	pthread_create(&threads[i], NULL, &convolute, (void*)i);
-	printf("HERE\n");
     }
 
-    //convolute(&srcImage,&destImage,algorithms[type]);
-   printf("buh");
     for(j = 0; j < NUM_THREADS; j++){
 	pthread_join(threads[j],NULL);
-	printf("HERE2\n");
     }
     stbi_write_png("output.png",destImage.width,destImage.height,destImage.bpp,destImage.data,destImage.bpp*destImage.width);
     stbi_image_free(srcImage.data);
