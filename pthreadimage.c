@@ -63,7 +63,7 @@ uint8_t getPixelValue(Image* srcImage,int x,int y,int bit,Matrix algorithm){
 //Returns: Nothing
 void *convolute(void* rank){
     //struct arguments *localArgs = argies;
-    int row,end,pix,bit,span;
+    int row,begin,end,pix,bit,span;
     //'pass in' old params using the struct
     long my_rank = (long)rank;
     Image* srcImage = argument.srcImg;
@@ -73,21 +73,27 @@ void *convolute(void* rank){
     //not every thread should edit the whole image
     //here is how it should be spaced out
     int spacing = srcImage->height / NUM_THREADS;
-    row = my_rank * spacing + 1;
-    end = (my_rank+1) * spacing;
+    //begin = spacing * my_rank + 1;
+    //end = (my_rank+1) * spacing;
+    begin = my_rank * spacing;
+    end = begin + spacing - 1;
 
+    if(my_rank == (NUM_THREADS-1)){
+	end += srcImage->height % NUM_THREADS;
+    }
+/*
     if(end > srcImage->height){
 	end = srcImage->height;
     }
-
+*/
     span=srcImage->bpp*srcImage->bpp;
-    for (;row<end;row++){
-	printf("IN\n");
+    //printf("Image Height:%d, Image Width:%d", srcImage->height, srcImage->width);
+    for (row = begin;row<=end;row++){
+	//printf("Rank: %ld, Row: %d, End: %d\n",my_rank,row, end);
         for (pix=0;pix<srcImage->width;pix++){
-	    printf("IN2\n");
             for (bit=0;bit<srcImage->bpp;bit++){
                 destImage->data[Index(pix,row,srcImage->width,bit,srcImage->bpp)]=getPixelValue(srcImage,pix,row,bit,algorithms[algorithm]);
-		printf("IN3\n");
+		//printf("IN3\n");
             }
         }
     }
@@ -146,20 +152,28 @@ int main(int argc,char** argv){
     //Create threads
     pthread_t* threads;
     threads = (pthread_t*)malloc(NUM_THREADS*sizeof(pthread_t));
+    Arguments *threadData[NUM_THREADS];
+
     for(i = 0; i < NUM_THREADS; i++){
 	pthread_create(&threads[i], NULL, &convolute, (void*)i);
 	printf("HERE\n");
     }
 
     //convolute(&srcImage,&destImage,algorithms[type]);
+   printf("buh");
+    for(j = 0; j < NUM_THREADS; j++){
+	pthread_join(threads[j],NULL);
+	printf("HERE2\n");
+    }
     stbi_write_png("output.png",destImage.width,destImage.height,destImage.bpp,destImage.data,destImage.bpp*destImage.width);
     stbi_image_free(srcImage.data);
-    free(destImage.data);
-    //Join threads
+/*
     for(j = 0; j < NUM_THREADS; j++){
         pthread_join(threads[i], NULL);
         printf("HERE2\n");
     }
+*/
+    free(destImage.data);
     t2=time(NULL);
     printf("Took %ld seconds\n",t2-t1);
    return 0;
